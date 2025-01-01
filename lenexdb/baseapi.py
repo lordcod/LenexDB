@@ -1,6 +1,6 @@
 import zipfile
 import tempfile
-import xml.etree.ElementTree as ET
+import lxml.etree as ET
 from typing import Optional, List
 from os.path import join
 from .types.club import Club
@@ -25,13 +25,13 @@ class BaseApi:
     def create_club(self, name: str) -> Club:
         eclub = ET.Element("CLUB", {"name": name})
         self.element_clubs.append(eclub)
-        
+
         econtact = ET.Element("CONTACT", {"name": name})
         eclub.append(econtact)
-        
+
         eathletes = ET.Element("ATHLETES")
         eclub.append(eathletes)
-        
+
         club = Club(self, eclub, name)
         self.clubs.append(club)
         return club
@@ -88,7 +88,8 @@ class BaseApi:
                     parse_dt(eathlete.get("birthdate")),
                     eathlete.get("gender"),
                     int(eathlete.get("athleteid")),
-                    entries,
+                    eathlete.get("license"),
+                    entries
                 )
                 self.athletes.append(athlete)
                 athletes.append(athlete)
@@ -111,18 +112,16 @@ class BaseApi:
                     int(pss.get("relaycount")),
                     pss.get("stroke"),
                 )
-                
-                etsr = eevent.find('TIMESTANDARDREFS')
-                licenses = etsr.findall('TIMESTANDARDREF')
+
+                etsr = eevent.find("TIMESTANDARDREFS")
+                licenses = etsr.findall("TIMESTANDARDREF")
                 standart_list = []
                 for l in licenses:
                     tmr = TimeStandardRef(
-                        l,
-                        l.get('marker'),
-                        int(l.get('timestandardlistid'))
+                        l, l.get("marker"), int(l.get("timestandardlistid"))
                     )
                     standart_list.append(tmr)
-                
+
                 event = Event(
                     self,
                     eevent,
@@ -133,7 +132,7 @@ class BaseApi:
                     eevent.get("round"),
                     int(eevent.get("preeventid", -1)),
                     ss,
-                    standart_list
+                    standart_list,
                 )
                 events.append(event)
                 self.events.append(event)
@@ -155,17 +154,26 @@ class BaseApi:
             if len(zp.filelist) != 1:
                 raise TypeError("Incorrect len file")
             with zp.open(zp.filelist[0]) as file:
-                self.tree = ET.parse(file)
-                self.root = self.tree.getroot()
+                try:
+                    self.root = ET.fromstring(file.read().decode())
+                except:
+                    self.root = ET.fromstring(file.read().decode('Windows-1251'))
 
     def save(self, filename: Optional[str] = None):
         with zipfile.ZipFile(self.filename) as zp:
-            filename_g = zp.filelist[0].filename
+            zipinfo = zp.filelist[0]
 
         filename_lxf = filename + ".lxf"
-        xml_string = ET.tostring(self.root, encoding="unicode", method="xml")
+        xml_string = ET.tostring(
+            self.root, 
+            encoding='unicode',
+            method="xml"
+        )
+        with open("test.xml", "w+") as ft:
+            ft.write(xml_string)
+
         with tempfile.TemporaryDirectory() as dir:
-            path = join(dir, filename_g)
+            path = join(dir, zipinfo.filename)
 
             with open(path, "w+") as f:
                 f.write(xml_string)
@@ -173,7 +181,8 @@ class BaseApi:
             with zipfile.ZipFile(
                 filename_lxf, "w", compression=zipfile.ZIP_DEFLATED
             ) as zf:
-                zf.write(path, filename_g)
+                zf.write(path, zipinfo.filename)
+                # zf.writestr(zipinfo, xml_string)
 
     def __repr__(self):
         return f"<{type(self).__name__} filename={self.filename}>"

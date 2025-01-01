@@ -1,5 +1,5 @@
 from __future__ import annotations
-from xml.etree.ElementTree import Element
+from lxml.etree import Element
 from typing import TYPE_CHECKING, Optional, Literal, List
 from dataclasses import dataclass
 

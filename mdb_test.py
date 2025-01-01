@@ -1,7 +1,7 @@
 import zipfile
 from os import path
 from lefdef import C_LefReader
-import xml.etree.ElementTree as ET
+import lxml.etree as ET
 import xml.etree.ElementPath as EP
 import codecs
 import shutil
@@ -38,7 +38,7 @@ def make_lftfile(base_name, base_dir):
 
 
 # xpath = r'C:\Users\2008d\Downloads\Telegram Desktop\20250209_Lenexttt.lxf'
-xpath = r'C:\Users\2008d\OneDrive\Рабочий стол\LenexDB\test2.lxf'
+xpath = 'test.lxf'
 
 def save_all(myzip: zipfile.ZipFile):
     for file in myzip.filelist:

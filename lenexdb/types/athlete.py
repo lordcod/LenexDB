@@ -1,5 +1,5 @@
 from __future__ import annotations
-from xml.etree.ElementTree import Element
+from lxml.etree import Element
 from typing import TYPE_CHECKING, Optional, Literal, List
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -24,7 +24,7 @@ class Athlete(BaseObj):
     gender: Literal["M", "F"] = field(metadata={"ext": selfname})
     athleteid: int
     license: Optional[str] = field(default=None, metadata={"ext": selfname})
-    enries: List[Entry]
+    enries: List[Entry] = field(default=list)
 
     def add_entry(self, eventid: int, entrytime: str):
         from .entry import Entry

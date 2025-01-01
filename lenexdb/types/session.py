@@ -1,6 +1,6 @@
 from __future__ import annotations
 from datetime import datetime
-from xml.etree.ElementTree import Element
+from lxml.etree import Element
 from typing import TYPE_CHECKING, List
 from dataclasses import dataclass
 

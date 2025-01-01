@@ -1,5 +1,5 @@
 from __future__ import annotations
-from xml.etree.ElementTree import Element
+from lxml.etree import Element
 from typing import TYPE_CHECKING, Optional, Literal
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -13,7 +13,8 @@ if TYPE_CHECKING:
 def get_entrytime(entry, value) -> str:
     if isinstance(value, str):
         return value
-    return strftime('%H:%M:%S.%f', gmtime(value))
+    print(value, gmtime(value))
+    return strftime('%H:%M:%S.%F', gmtime(value))
 
 @dataclass
 class Entry(BaseObj):
