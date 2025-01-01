@@ -20,7 +20,7 @@ class BaseApi:
 
     def __init__(self, filename: str, folder: Optional[str] = None):
         self.filename = filename
-        self.folder = folder
+        self.folder = folder if folder is not None else os.curdir
         self.read()
         self.parse()
 
@@ -174,9 +174,8 @@ class BaseApi:
             encoding='unicode',
             method="xml"
         )
-        if self.folder:
-            with open(join(self.folder, "result.xml"), "w+") as ft:
-                ft.write(ET.tostring(self.root))
+        with open(join(self.folder, "result.xml"), "w+") as ft:
+            ft.write(xml_string)
 
         with tempfile.TemporaryDirectory() as dir:
             path = join(dir, zipinfo.filename)
