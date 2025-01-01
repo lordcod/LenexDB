@@ -1,4 +1,4 @@
-from lenexdb.baseapi import BaseApi, Athlete, Club
+from lenexdb.baseapi import BaseApi, Athlete, Club, Event
 import json
 import openpyxl
 import re
@@ -19,26 +19,35 @@ class RegisteredDistance:
         for row_k in sheet.iter_rows(min_row=2):
             row = tuple(r.value for r in row_k)
             club = self.get_club(row[8])
-            athlete = self.get_athlete(club, row)
-            eventid = self.find_swimstyle(
-                athlete.gender, registered.get(row[9]), int(row[10])
+            event = self.find_swimstyle(
+                self.parse_gender(row[3]), registered.get(row[9]), int(row[10])
             )
-            athlete.add_entry(eventid, self.parse_entrytime(row[12]))
+            athlete = self.get_athlete(club, event, row)
+            athlete.add_entry(event.eventid, self.parse_entrytime(row[12]))
+
+    def get_lisense(self, event: Event, license: str | None) -> str | None:
+        if license is None:
+            return None
+        for ts in event.timestandardrefs:
+            if ts.marker == license:
+                return ts.marker
+        return None
 
     def parse_entrytime(self, entrytime) -> str:
-        m = re.fullmatch("(\d{2,3}):(\d{2}):(\d{2})",  entrytime)
+        m = re.fullmatch("(\d{2,3}):(\d{2}):(\d{2})", entrytime)
         if m is None:
-            return '00:.'
+            return "00:000:00.00"
         return f"00:{m.group(1)}:{m.group(2)}.{m.group(3)}"
 
-    def find_swimstyle(self, gdr, srk, dist) -> int:
+    def find_swimstyle(self, gdr, srk, dist) -> Event:
         for e in bapi.events:
             if (
                 e.gender == gdr
                 and e.swim_style.stroke == srk
                 and e.swim_style.distance == dist
             ):
-                return e.eventid
+                return e
+        raise TypeError("Incorrect distance")
 
     def parse_gender(self, gender: str):
         if gender == "Мужской":
@@ -59,23 +68,18 @@ class RegisteredDistance:
             self.clubs[name.lower()] = bapi.create_club(name)
         return self.clubs[name.lower()]
 
-    def get_athlete(self, club: Club, row: tuple) -> Athlete:
+    def get_athlete(self, club: Club, event: Event, row: tuple) -> Athlete:
         key = row[0] + " " + row[1]
-        print(key)
         if key not in self.athletes:
             athl = club.create_athlete(
-                row[0], row[1], self.parse_bd(row[5]), self.parse_gender(row[3])
+                row[0],
+                row[1],
+                self.parse_bd(row[5]),
+                self.parse_gender(row[3]),
+                self.get_lisense(event, row[4]),
             )
             self.athletes[key] = athl
         return self.athletes[key]
-
-
-def test1():
-    a = bapi.athletes[1]
-    a.element.set("birthdate", "2005-01-03")
-    print(bapi.athletes)
-    bapi.save("test")
-
 
 def get_all_dist():
     for e in bapi.events:
@@ -83,5 +87,4 @@ def get_all_dist():
 
 
 RegisteredDistance(None)
-print(bapi.athletes)
-bapi.save('test')
+bapi.save("test")

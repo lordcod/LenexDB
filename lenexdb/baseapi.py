@@ -5,7 +5,7 @@ from typing import Optional, List
 from os.path import join
 from .types.club import Club
 from .types.session import Session
-from .types.event import Event, SwimStyle
+from .types.event import Event, SwimStyle, TimeStandardRef
 from .types.athlete import Athlete
 from .types.entry import Entry
 from .utils import parse_dt, parse_time
@@ -111,6 +111,18 @@ class BaseApi:
                     int(pss.get("relaycount")),
                     pss.get("stroke"),
                 )
+                
+                etsr = eevent.find('TIMESTANDARDREFS')
+                licenses = etsr.findall('TIMESTANDARDREF')
+                standart_list = []
+                for l in licenses:
+                    tmr = TimeStandardRef(
+                        l,
+                        l.get('marker'),
+                        int(l.get('timestandardlistid'))
+                    )
+                    standart_list.append(tmr)
+                
                 event = Event(
                     self,
                     eevent,
@@ -121,6 +133,7 @@ class BaseApi:
                     eevent.get("round"),
                     int(eevent.get("preeventid", -1)),
                     ss,
+                    standart_list
                 )
                 events.append(event)
                 self.events.append(event)
