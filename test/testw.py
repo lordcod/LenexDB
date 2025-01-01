@@ -12,8 +12,9 @@ class RegisteredDistance:
     clubs = dict()
     athletes = dict()
 
-    def __init__(self, xpath: str, table: str):
+    def __init__(self, xpath: str, table: str, config: dict):
         self.bapi = BaseApi(xpath, 'result')
+        self.config = config
         workbook = openpyxl.load_workbook(table)
         sheet = workbook.active
         for i in sheet.iter_rows():
@@ -21,15 +22,16 @@ class RegisteredDistance:
             break
         for row_k in sheet.iter_rows(min_row=2):
             row = tuple(r.value for r in row_k)
-            if row[0] is None:
+            if row[config['lastname']] is None:
                 break
-            club = self.get_club(row[8])
+            club = self.get_club(row[self.config['club']])
             event = self.find_swimstyle(
-                self.parse_gender(row[3]), registered.get(row[10]), int(row[9])
+                self.parse_gender(row[self.config['gender']]),
+                registered.get(row[self.config['stroke']]),
+                int(row[self.config['distance']])
             )
             athlete = self.get_athlete(club, event, row)
-            et = self.parse_entrytime(row[12])
-            print(et)
+            et = self.parse_entrytime(row[self.config['entrytime']])
             athlete.add_entry(event.eventid, et)
 
     def get_lisense(self, event: Event, license: str | None) -> str | None:
@@ -79,19 +81,42 @@ class RegisteredDistance:
         return self.clubs[name.lower()]
 
     def get_athlete(self, club: Club, event: Event, row: tuple) -> Athlete:
-        key = row[0] + " " + row[1]
+        key = row[self.config['lastname']] + " " + row[self.config['firstname']]
         if key not in self.athletes:
             athl = club.create_athlete(
-                row[0],
-                row[1],
-                self.parse_bd(row[5]),
-                self.parse_gender(row[3]),
-                self.get_lisense(event, row[4]),
+                row[self.config['lastname']],
+                row[self.config['firstname']],
+                self.parse_bd(row[self.config['birthdate']]),
+                self.parse_gender(row[self.config['gender']]),
+                self.get_lisense(event, row[self.config['license']]),
             )
             self.athletes[key] = athl
         return self.athletes[key]
 
 
+# config = {
+#     'lastname': 0,
+#     'firstname': 1,
+#     'birthdate': 5,
+#     'gender': 3,
+#     'license':  4,
+#     'club': 8,
+#     'stroke': 10,
+#     'distance': 9,
+#     'entrytime': 12
+# }
+
+config = {
+    'lastname': 0,
+    'firstname': 1,
+    'gender': 2,
+    'license':  3,
+    'birthdate': 4,
+    'club': 5,
+    'stroke': 6,
+    'distance': 7,
+    'entrytime': 8
+}
 xpath = r"C:\Users\2008d\Downloads\Telegram Desktop\20250209_Lenex.lxf"
-rd = RegisteredDistance(xpath, "table2.xlsx")
+rd = RegisteredDistance(xpath, "test.xlsx", config)
 rd.bapi.save("result/test")
