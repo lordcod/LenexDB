@@ -5,7 +5,6 @@ lenexdb/utils.py
 lenexdb.egg-info/PKG-INFO
 lenexdb.egg-info/SOURCES.txt
 lenexdb.egg-info/dependency_links.txt
-lenexdb.egg-info/requires.txt
 lenexdb.egg-info/top_level.txt
 lenexdb/types/__init__.py
 lenexdb/types/_base_obj.py

@@ -2,5 +2,3 @@ Metadata-Version: 2.1
 Name: lenexdb
 Version: 0.0.1
 Summary: A demo package.
-Requires-Dist: lxml==5.3.0
-Requires-Dist: openpyxl==3.1.5

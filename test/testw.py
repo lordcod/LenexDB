@@ -120,3 +120,4 @@ config = {
 xpath = r"C:\Users\2008d\Downloads\Telegram Desktop\20250209_Lenex.lxf"
 rd = RegisteredDistance(xpath, "test.xlsx", config)
 rd.bapi.save("result/test")
+print(rd)

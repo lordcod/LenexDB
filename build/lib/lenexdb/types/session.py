@@ -8,8 +8,9 @@ if TYPE_CHECKING:
     from ..baseapi import BaseApi
     from .event import Event
 
+
 @dataclass
-class Session: 
+class Session:
     baseapi: BaseApi
     element: Element
     dt: datetime

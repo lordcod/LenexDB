@@ -1,8 +1,8 @@
 import zipfile
 import tempfile
 import lxml.etree as ET
+import xml.etree.ElementTree as XET
 from typing import Optional, List
-import os
 from os.path import join
 from .types.club import Club
 from .types.session import Session
@@ -12,7 +12,26 @@ from .types.entry import Entry
 from .utils import parse_dt, parse_time
 
 
+constructor = ET.Element('CONSTRUCTOR', {
+    'name': 'Splash ENTRY EDITOR',
+    'version': '08.00.1343'
+})
+constructor_contact = ET.Element('CONTACT', {
+    'name': 'GeoLogix AG',
+    'street': 'Muristrasse 60',
+    'city': 'Bern',
+    'zip': '3006',
+    'country': 'CH',
+    'phone': '+41 31 356 80 56',
+    'fax': '+41 31 356 80 81',
+    'email': 'info@splash-software.ch',
+    'internet': 'http://www.splash-software.ch'
+})
+constructor.append(constructor_contact)
+
+
 class BaseApi:
+    root: ET.ElementBase
     sessions: List[Session]
     events: List[Event]
     clubs: List[Club]
@@ -23,6 +42,13 @@ class BaseApi:
         self.folder = folder
         self.read()
         self.parse()
+        self.edit_constructor()
+
+    def edit_constructor(self):
+        self.root.set('version', '2.0')
+        old_constructor = self.root.find('CONSTRUCTOR')
+        self.root.remove(old_constructor)
+        self.root.append(constructor)
 
     def create_club(self, name: str) -> Club:
         eclub = ET.Element("CLUB", {"name": name})
@@ -120,7 +146,7 @@ class BaseApi:
                 standart_list = []
                 for l in licenses:
                     tmr = TimeStandardRef(
-                        l, 
+                        l,
                         l.get("marker"),
                         int(l.get("timestandardlistid"))
                     )
@@ -171,21 +197,25 @@ class BaseApi:
         filename_lxf = filename + ".lxf"
         xml_string = ET.tostring(
             self.root,
-            encoding='unicode',
-            method="xml"
+            encoding='Windows-1251',
+            method="xml",
+            xml_declaration=True
         )
         if self.folder:
-            with open(join(self.folder, "result.xml"), "w+") as ft:
-                ft.write(ET.tostring(self.root))
+            with open(join(self.folder, "result.xml"), "wb+") as ft:
+                # ft.write(ET.tostring(self.root))
+                ft.write(xml_string)
 
         with tempfile.TemporaryDirectory() as dir:
             path = join(dir, zipinfo.filename)
 
-            with open(path, "w+") as f:
+            with open(path, "wb+") as f:
                 f.write(xml_string)
 
             with zipfile.ZipFile(
-                filename_lxf, "w", compression=zipfile.ZIP_DEFLATED
+                filename_lxf,
+                "w",
+                compression=zipfile.ZIP_DEFLATED
             ) as zf:
                 zf.write(path, zipinfo.filename)
                 # zf.writestr(zipinfo, xml_string)
