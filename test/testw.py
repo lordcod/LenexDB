@@ -1,11 +1,15 @@
+import lenexdb
 from lenexdb.baseapi import BaseApi, Athlete, Club, Event
 import json
 import openpyxl
 import re
 from datetime import time, datetime
 
+import lenexdb.baseapi
+
 names = json.load(open("data.json", "rb+"))
 registered = dict(zip(names.values(), names.keys()))
+lenexdb.baseapi.ENCODING = 'utf-8'
 
 
 class RegisteredDistance:
@@ -48,7 +52,7 @@ class RegisteredDistance:
             return r
         m = re.fullmatch("(\d{2,3}):(\d{2}):(\d{2})", entrytime)
         if m is None:
-            return "00:000:00.00"
+            return "00:00:00.00"
         return f"00:{m.group(1)}:{m.group(2)}.{m.group(3)}"
 
     def find_swimstyle(self, gdr, srk, dist) -> Event:
@@ -81,7 +85,8 @@ class RegisteredDistance:
         return self.clubs[name.lower()]
 
     def get_athlete(self, club: Club, event: Event, row: tuple) -> Athlete:
-        key = row[self.config['lastname']] + " " + row[self.config['firstname']]
+        key = row[self.config['lastname']] + \
+            " " + row[self.config['firstname']]
         if key not in self.athletes:
             athl = club.create_athlete(
                 row[self.config['lastname']],
@@ -119,5 +124,5 @@ config = {
 }
 xpath = r"C:\Users\2008d\Downloads\Telegram Desktop\20250209_Lenex.lxf"
 rd = RegisteredDistance(xpath, "test.xlsx", config)
-rd.bapi.save("result/test")
+rd.bapi.save("result/test.lef")
 print(rd)

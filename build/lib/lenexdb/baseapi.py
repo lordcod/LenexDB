@@ -3,6 +3,7 @@ import tempfile
 import lxml.etree as ET
 import xml.etree.ElementTree as XET
 from typing import Optional, List
+from pathlib import Path
 from os.path import join
 from .types.club import Club
 from .types.session import Session
@@ -28,6 +29,8 @@ constructor_contact = ET.Element('CONTACT', {
     'internet': 'http://www.splash-software.ch'
 })
 constructor.append(constructor_contact)
+ENCODING = 'Windows-1251'
+BYTES_MODE = 'b'
 
 
 class BaseApi:
@@ -188,37 +191,39 @@ class BaseApi:
                 try:
                     self.root = ET.fromstring(inf)
                 except ET.XMLSyntaxError:
-                    self.root = ET.fromstring(inf.decode('Windows-1251'))
+                    self.root = ET.fromstring(inf.decode(ENCODING))
 
-    def save(self, filename: Optional[str] = None):
-        with zipfile.ZipFile(self.filename) as zp:
-            zipinfo = zp.filelist[0]
+    def save(self, filename: str):
+        if not filename.endswith(('.lxf', '.lef', '.xml')):
+            raise TypeError('The file type must be .lxf, .lef, .xml')
 
-        filename_lxf = filename + ".lxf"
+        fn = Path(filename).name[:-4] + '.lef'
         xml_string = ET.tostring(
             self.root,
-            encoding='Windows-1251',
+            encoding=ENCODING,
             method="xml",
             xml_declaration=True
         )
         if self.folder:
-            with open(join(self.folder, "result.xml"), "wb+") as ft:
-                # ft.write(ET.tostring(self.root))
+            with open(join(self.folder, "result.xml"), f"w{BYTES_MODE}+") as ft:
                 ft.write(xml_string)
 
-        with tempfile.TemporaryDirectory() as dir:
-            path = join(dir, zipinfo.filename)
+        if filename.endswith('.lxf'):
+            with tempfile.TemporaryDirectory() as dir:
+                path = join(dir, fn)
 
-            with open(path, "wb+") as f:
+                with open(path, f"w{BYTES_MODE}+") as f:
+                    f.write(xml_string)
+
+                with zipfile.ZipFile(
+                    filename,
+                    "w",
+                    compression=zipfile.ZIP_DEFLATED
+                ) as zf:
+                    zf.write(path, fn)
+        else:
+            with open(filename, f"w{BYTES_MODE}+") as f:
                 f.write(xml_string)
-
-            with zipfile.ZipFile(
-                filename_lxf,
-                "w",
-                compression=zipfile.ZIP_DEFLATED
-            ) as zf:
-                zf.write(path, zipinfo.filename)
-                # zf.writestr(zipinfo, xml_string)
 
     def __repr__(self):
         return f"<{type(self).__name__} filename={self.filename}>"
