@@ -1,6 +1,8 @@
 setup.py
 lenexdb/__init__.py
 lenexdb/baseapi.py
+lenexdb/declaration.py
+lenexdb/registered.py
 lenexdb/utils.py
 lenexdb.egg-info/PKG-INFO
 lenexdb.egg-info/SOURCES.txt
@@ -14,4 +16,3 @@ lenexdb/types/entry.py
 lenexdb/types/event.py
 lenexdb/types/session.py
 test/testr.py
-test/testw.py

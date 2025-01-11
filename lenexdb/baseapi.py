@@ -1,7 +1,7 @@
 import zipfile
 import tempfile
 import lxml.etree as ET
-import xml.etree.ElementTree as XET
+# import xml.etree.ElementTree as XET
 from typing import Optional, List
 from pathlib import Path
 from os.path import join
@@ -11,6 +11,7 @@ from .types.event import Event, SwimStyle, TimeStandardRef
 from .types.athlete import Athlete
 from .types.entry import Entry
 from .utils import parse_dt, parse_time
+from .declaration import change_declaration
 
 
 constructor = ET.Element('CONSTRUCTOR', {
@@ -29,7 +30,7 @@ constructor_contact = ET.Element('CONTACT', {
     'internet': 'http://www.splash-software.ch'
 })
 constructor.append(constructor_contact)
-ENCODING = 'Windows-1251'
+ENCODING = 'utf-8'
 BYTES_MODE = 'b'
 
 
@@ -40,9 +41,8 @@ class BaseApi:
     clubs: List[Club]
     athletes: List[Athlete]
 
-    def __init__(self, filename: str, folder: Optional[str] = None):
+    def __init__(self, filename: str):
         self.filename = filename
-        self.folder = folder
         self.read()
         self.parse()
         self.edit_constructor()
@@ -183,30 +183,33 @@ class BaseApi:
         return len(self.athletes)
 
     def read(self):
-        with zipfile.ZipFile(self.filename) as zp:
-            if len(zp.filelist) != 1:
-                raise TypeError("Incorrect len file")
-            with zp.open(zp.filelist[0]) as file:
+        if self.filename.endswith(('.lef', '.xml')):
+            with open(self.filename, 'rb') as file:
                 inf = file.read()
-                try:
-                    self.root = ET.fromstring(inf)
-                except ET.XMLSyntaxError:
-                    self.root = ET.fromstring(inf.decode(ENCODING))
+        else:
+            with zipfile.ZipFile(self.filename) as zp:
+                if len(zp.filelist) != 1:
+                    raise TypeError("Incorrect len file")
+                with zp.open(zp.filelist[0]) as file:
+                    inf = file.read()
+        try:
+            self.root = ET.fromstring(inf)
+        except ET.XMLSyntaxError:
+            self.root = ET.fromstring(inf.decode(ENCODING))
 
     def save(self, filename: str):
         if not filename.endswith(('.lxf', '.lef', '.xml')):
             raise TypeError('The file type must be .lxf, .lef, .xml')
 
         fn = Path(filename).name[:-4] + '.lef'
-        xml_string = ET.tostring(
+        xml_string: bytes = ET.tostring(
             self.root,
             encoding=ENCODING,
             method="xml",
             xml_declaration=True
         )
-        if self.folder:
-            with open(join(self.folder, "result.xml"), f"w{BYTES_MODE}+") as ft:
-                ft.write(xml_string)
+        xml_string = change_declaration(
+            xml_string.decode(ENCODING)).encode(ENCODING)
 
         if filename.endswith('.lxf'):
             with tempfile.TemporaryDirectory() as dir:
