@@ -6,6 +6,53 @@ from tkinter import messagebox as mb
 validate_types = [('Lenex file', ('.lxf', '.lef')),
                   ('XML file', '.xml')]
 json_types = [('JSON file', '.json')]
+default_data = {
+    "styles": {
+        "FREE": "Вольный стиль",
+        "BACK": "На спине",
+        "BREAST": "Брасс",
+        "FLY": "Баттерфляй",
+        "MEDLEY": "Комплекс"
+    },
+    "reversed_styles": {
+        "Вольный стиль": "FREE",
+        "На спине": "BACK",
+        "Брасс": "BREAST",
+        "Баттерфляй": "FLY",
+        "Комплекс": "MEDLEY",
+        "Комплексное плавание": "MEDLEY"
+    },
+    "location": {
+        "lastname": 0,
+        "firstname": 1,
+        "gender": 2,
+        "license": 3,
+        "birthdate": 4,
+        "club": 5,
+        "stroke": 6,
+        "distance": 7,
+        "entrytime": 8
+    },
+    "replacement": {
+        ".": "",
+        " ": "",
+        "взрослый": "",
+        "разряд": "",
+        "взр": "",
+        "вз": "",
+        "|": "I",
+        "МС": "мс",
+        "КМС": "кмс",
+        "юношеский": "юн",
+        "1": "I",
+        "2": "II",
+        "3": "III",
+        "спортивный": "",
+        "-ой": "",
+        "-в": "",
+        "-": ""
+    }
+}
 
 
 class App(ctk.CTk):
@@ -265,7 +312,15 @@ class App(ctk.CTk):
         self.button_saved_file_lxf.configure(state='normal')
         self.button_add.configure(state='normal')
 
-
-data = json.load(open("data.json", "rb+"))
-app = App(data)
-app.mainloop()
+try:
+    try:
+        data = json.load(open("data.json", "rb"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        open("data.json", "w+").write(json.dumps(default_data))
+        data = default_data
+    app = App(data)
+    app.mainloop()
+except BaseException:
+    import traceback
+    traceback.print_exc()
+    input()
