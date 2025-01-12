@@ -15,4 +15,5 @@ lenexdb/types/club.py
 lenexdb/types/entry.py
 lenexdb/types/event.py
 lenexdb/types/session.py
+test/test-logur.py
 test/testr.py

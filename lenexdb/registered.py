@@ -3,14 +3,16 @@ import json
 import openpyxl
 import re
 from datetime import time, datetime
+import logging
 
 
 class RegisteredDistance:
     clubs: dict[str, Club] = dict()
     athletes: dict[str, Athlete] = dict()
+    logger = logging.getLogger()
 
     def __init__(self, xpath: str, table: str, data: dict):
-        self.bapi = BaseApi(xpath, 'result')
+        self.bapi = BaseApi(xpath)
         self.data = data
         self.config = data['location']
         self.registered = data['reversed_styles']
@@ -47,11 +49,10 @@ class RegisteredDistance:
             self.athletes[key.lower()] = athlete
 
     def parse(self):
-        for i in self.sheet.iter_rows():
-            row = tuple(r.value for r in i)
-            break
         for row_k in self.sheet.iter_rows(min_row=2):
             row = tuple(r.value for r in row_k)
+            self.logger.debug(
+                f'Parse {row_k[0].row} row: '+' '.join(map(str, row)))
             if row[self.config['lastname']] is None:
                 break
             club = self.get_club(row[self.config['club']])
@@ -62,8 +63,8 @@ class RegisteredDistance:
                     int(row[self.config['distance']])
                 )
             except TypeError:
-                print('Skip distance',
-                      row[self.config['stroke']], row[self.config['distance']])
+                self.logger.error(
+                    f"Missed the distance {row[self.config['distance']]} {row[self.config['stroke']]}")
                 continue
             athlete = self.get_athlete(club, event, row)
             et = self.parse_entrytime(row[self.config['entrytime']])
@@ -86,7 +87,7 @@ class RegisteredDistance:
         for ts in event.timestandardrefs:
             if ts.marker == license or license == 'IIIюн':
                 return ts.marker
-        print('Not found license', license)
+        self.logger.error('Not found license ' + license)
         return None
 
     def parse_entrytime(self, entrytime) -> str:
@@ -95,7 +96,7 @@ class RegisteredDistance:
             return r
         m = re.fullmatch("(\d{1,3}):(\d{1,2}):(\d{1,2})", entrytime)
         if m is None:
-            print('Incorrect entrytime', entrytime)
+            self.logger.error('Incorrect entrytime ' + entrytime)
             return "00:00:00.00"
         return f"00:{m.group(1)}:{m.group(2)}.{m.group(3)}"
 
@@ -107,6 +108,7 @@ class RegisteredDistance:
                 and e.swim_style.distance == dist
             ):
                 return e
+        self.logger.error(f'Incorrect distance {gdr} {dist} {srk}')
         raise TypeError("Incorrect distance")
 
     def parse_gender(self, gender: str):
@@ -114,6 +116,7 @@ class RegisteredDistance:
             return "M"
         if gender == "Женский":
             return "F"
+        self.logger.error(f'Incorrect gender {gender}')
         raise TypeError("Sex not found")
 
     def parse_bd(self, bd: str):
