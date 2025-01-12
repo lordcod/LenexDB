@@ -1,47 +1,59 @@
 {
-    "styles": {
-        "FREE": "Вольный стиль",
-        "BACK": "На спине",
-        "BREAST": "Брасс",
-        "FLY": "Баттерфляй",
-        "MEDLEY": "Комплекс"
-    },
-    "reversed_styles": {
-        "Вольный стиль": "FREE",
-        "На спине": "BACK",
-        "Брасс": "BREAST",
-        "Баттерфляй": "FLY",
-        "Комплекс": "MEDLEY",
-        "Комплексное плавание": "MEDLEY"
-    },
-    "location": {
-        "lastname": 0,
-        "firstname": 1,
-        "gender": 2,
-        "license": 3,
-        "birthdate": 4,
-        "club": 5,
-        "stroke": 6,
-        "distance": 7,
-        "entrytime": 8
-    },
-    "replacement": {
-        ".": "",
-        " ": "",
-        "взрослый": "",
-        "разряд": "",
-        "взр": "",
-        "вз": "",
-        "|": "I",
-        "МС": "мс",
-        "КМС": "кмс",
-        "юношеский": "юн",
-        "1": "I",
-        "2": "II",
-        "3": "III",
-        "спортивный": "",
-        "-ой": "",
-        "-в": "",
-        "-": ""
-    }
+  "auto_location": {
+    "Фамилия": "lastname",
+    "Имя": "firstname",
+    "Пол": "gender",
+    "р": "license",
+    "Дата рождения": "birthdate",
+    "Город": "club",
+    "Дисциплина": "stroke",
+    "Дистанция": "distance",
+    "Заявочное время": "entrytime"
+  },
+  "styles": {
+    "FREE": "Вольный стиль",
+    "BACK": "На спине",
+    "BREAST": "Брасс",
+    "FLY": "Баттерфляй",
+    "MEDLEY": "Комплекс"
+  },
+  "reversed_styles": {
+    "Вольный стиль": "FREE",
+    "На спине": "BACK",
+    "Брасс": "BREAST",
+    "Баттерфляй": "FLY",
+    "Комплекс": "MEDLEY",
+    "Комплексное плавание": "MEDLEY"
+  },
+  "location": {
+    "lastname": 0,
+    "firstname": 1,
+    "gender": 2,
+    "license": 3,
+    "birthdate": 4,
+    "club": 5,
+    "stroke": 6,
+    "distance": 7,
+    "entrytime": 8
+  },
+  "replacement": {
+    ".": "",
+    " ": "",
+    "взрослый": "",
+    "разряд": "",
+    "взр": "",
+    "вз": "",
+    "|": "I",
+    "МС": "мс",
+    "КМС": "кмс",
+    "юношеский": "юн",
+    "1": "I",
+    "2": "II",
+    "3": "III",
+    "спортивный": "",
+    "-ой": "",
+    "-в": "",
+    "-": ""
+  },
+  "config_path": "C:/Users/2008d/Downloads/Telegram Desktop/basic.json"
 }

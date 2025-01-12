@@ -2,9 +2,9 @@ from lenexdb.baseapi import BaseApi, Athlete, Club, Event
 import json
 import openpyxl
 import re
-from datetime import time, datetime
+import time
+from datetime import time as dtime, datetime
 import logging
-
 
 class RegisteredDistance:
     clubs: dict[str, Club] = dict()
@@ -50,6 +50,7 @@ class RegisteredDistance:
 
     def parse(self):
         for row_k in self.sheet.iter_rows(min_row=2):
+            time.sleep(0.01)
             row = tuple(r.value for r in row_k)
             self.logger.debug(
                 f'Parse {row_k[0].row} row: '+' '.join(map(str, row)))
@@ -91,7 +92,7 @@ class RegisteredDistance:
         return None
 
     def parse_entrytime(self, entrytime) -> str:
-        if isinstance(entrytime, (time, datetime)):
+        if isinstance(entrytime, (dtime, datetime)):
             r = entrytime.strftime('00:%H:%M.%S')
             return r
         m = re.fullmatch("(\d{1,3}):(\d{1,2}):(\d{1,2})", entrytime)
@@ -147,8 +148,14 @@ class RegisteredDistance:
 
 
 if __name__ == '__main__':
-    data = json.load(open("data.json", "rb+"))
-    xpath = r"C:\Users\2008d\Downloads\Telegram Desktop\20250209_Lenex.lxf"
-    rd = RegisteredDistance(xpath, "test3.xlsx", data)
-    rd.bapi.save("result/test.lxf")
-    print(rd)
+    # data = json.load(open("data.json", "rb+"))
+    # xpath = r"C:\Users\2008d\Downloads\Telegram Desktop\20250209_Lenex.lxf"
+    # rd = RegisteredDistance(xpath, "test3.xlsx", data)
+    # rd.bapi.save("result/test.lxf")
+    # print(rd)
+    
+    workbook = openpyxl.load_workbook('test.xlsx')
+    sheet = workbook.active
+    values = [r.value for r in sheet[1]]
+    d = dict(zip(values, range(len(values))))
+    print(json.dumps(d, ensure_ascii=False))

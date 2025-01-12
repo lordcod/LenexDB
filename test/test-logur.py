@@ -1,30 +1,25 @@
-import customtkinter
-
-class ToplevelWindow(customtkinter.CTkToplevel):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.geometry("400x300")
-
-        self.label = customtkinter.CTkLabel(self, text="ToplevelWindow")
-        self.label.pack(padx=20, pady=20)
-
-
-class App(customtkinter.CTk):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.geometry("500x400")
-
-        self.button_1 = customtkinter.CTkButton(self, text="open toplevel", command=self.open_toplevel)
-        self.button_1.pack(side="top", padx=20, pady=20)
-
-        self.toplevel_window = None
-
-    def open_toplevel(self):
-        if self.toplevel_window is None or not self.toplevel_window.winfo_exists():
-            self.toplevel_window = ToplevelWindow(self)  # create window if its None or destroyed
-        else:
-            self.toplevel_window.focus()  # if window exists focus it
-
-
-app = App()
-app.mainloop()
+a = {
+    "lastname": 0,
+    "firstname": 1,
+    "gender": 2,
+    "license": 3,
+    "birthdate": 4,
+    "club": 5,
+    "stroke": 6,
+    "distance": 7,
+    "entrytime": 8
+}
+b = {
+    "Фамилия": 0,
+    "Имя": 1,
+    "Пол": 2,
+    "р": 3,
+    "Дата рождения": 4,
+    "Город": 5,
+    "Дисциплина": 6,
+    "Дистанция": 7,
+    "Заявочное время": 8
+}
+import json
+s = json.dumps(dict(zip(b.keys(), a.keys())), ensure_ascii=False)
+print(s)
