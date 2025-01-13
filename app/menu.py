@@ -12,6 +12,16 @@ validate_types = [('Lenex file', ('.lxf', '.lef')),
                   ('XML file', '.xml')]
 json_types = [('JSON file', '.json')]
 default_data = {
+    "lisenses": [
+        "мс",
+        "кмс",
+        "I",
+        "II",
+        "III",
+        "Iюн",
+        "IIюн",
+        "IIIюн"
+    ],
     "auto_location": {
         "Фамилия": "lastname",
         "Имя": "firstname",
