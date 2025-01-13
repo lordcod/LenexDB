@@ -18,6 +18,7 @@ class Event:
     round: str
     preevent: int
     swim_style: SwimStyle
+    agegroups: List[AgeGroup]
     timestandardrefs: List[TimeStandardRef]
 
 
@@ -34,3 +35,11 @@ class TimeStandardRef:
     element: Element
     marker: str
     timestandardlistid: int
+
+
+@dataclass
+class AgeGroup:
+    element: Element
+    agegroupid: int
+    agemax: int
+    agemin: int

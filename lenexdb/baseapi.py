@@ -7,7 +7,7 @@ from pathlib import Path
 from os.path import join
 from .types.club import Club
 from .types.session import Session
-from .types.event import Event, SwimStyle, TimeStandardRef
+from .types.event import Event, SwimStyle, TimeStandardRef, AgeGroup
 from .types.athlete import Athlete
 from .types.entry import Entry
 from .utils import parse_dt, parse_time
@@ -155,6 +155,18 @@ class BaseApi:
                     )
                     standart_list.append(tmr)
 
+                pag = eevent.find('AGEGROUPS')
+                agegroups_es = pag.findall('AGEGROUP')
+                agegroups = []
+                for ag in agegroups_es:
+                    agegroup = AgeGroup(
+                        ag,
+                        int(ag.get('agegroupid')),
+                        int(ag.get('agemax')),
+                        int(ag.get('agemin'))
+                    )
+                    agegroups.append(agegroup)
+
                 event = Event(
                     self,
                     eevent,
@@ -165,6 +177,7 @@ class BaseApi:
                     eevent.get("round"),
                     int(eevent.get("preeventid", -1)),
                     ss,
+                    agegroups,
                     standart_list,
                 )
                 events.append(event)

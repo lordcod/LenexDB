@@ -1,4 +1,14 @@
 {
+  "lisenses": [
+    "мс",
+    "кмс",
+    "I",
+    "II",
+    "III",
+    "Iюн",
+    "IIюн",
+    "IIIюн"
+  ],
   "auto_location": {
     "Фамилия": "lastname",
     "Имя": "firstname",

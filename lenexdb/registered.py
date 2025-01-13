@@ -1,10 +1,37 @@
-from lenexdb.baseapi import BaseApi, Athlete, Club, Event
+from lenexdb.baseapi import BaseApi, Athlete, Club, Event, AgeGroup
 import json
 import openpyxl
 import re
 import time
-from datetime import time as dtime, datetime
+from datetime import time as dtime, datetime, date
+from typing import List
 import logging
+import math
+from functools import cache
+
+
+def get_age(s: str):
+    today = date.today()
+    born = datetime.strptime(s, "%Y-%m-%d")
+    return today.year - born.year
+    # return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+
+
+def check_age(age: int, minage: int, maxage: int):
+    if maxage == -1:
+        return True
+    return minage <= age <= maxage
+
+
+def sum_age_groups(agegroups: List[AgeGroup]):
+    amax, amin = -1, math.inf
+    for group in agegroups:
+        if group.agemax > amax or group.agemax == -1:
+            amax = group.agemax
+        if group.agemin < amin:
+            amin = group.agemin
+    return amin, amax
+
 
 class RegisteredDistance:
     clubs: dict[str, Club] = dict()
@@ -50,27 +77,29 @@ class RegisteredDistance:
 
     def parse(self):
         for row_k in self.sheet.iter_rows(min_row=2):
-            time.sleep(0.01)
+            time.sleep(0.05)
             row = tuple(r.value for r in row_k)
             self.logger.debug(
                 f'Parse {row_k[0].row} row: '+' '.join(map(str, row)))
             if row[self.config['lastname']] is None:
                 break
             club = self.get_club(row[self.config['club']])
+            athlete = self.get_athlete(club, row)
             try:
                 event = self.find_swimstyle(
-                    self.parse_gender(row[self.config['gender']]),
+                    athlete.gender,
                     self.registered.get(row[self.config['stroke']]),
-                    int(row[self.config['distance']])
+                    int(row[self.config['distance']]),
+                    self.parse_bd(row[self.config['birthdate']], age=True)
                 )
             except TypeError:
                 self.logger.error(
                     f"Missed the distance {row[self.config['distance']]} {row[self.config['stroke']]}")
                 continue
-            athlete = self.get_athlete(club, event, row)
             et = self.parse_entrytime(row[self.config['entrytime']])
             athlete.add_entry(event.eventid, et)
 
+    @cache
     def parse_lisense(self, license: str) -> str:
         def chg(match: re.Match):
             t = match.string[match.regs[0][0]:match.regs[0][1]]
@@ -81,16 +110,16 @@ class RegisteredDistance:
             license = license.replace(a, b)
         return license
 
-    def get_lisense(self, event: Event, license: str | None) -> str | None:
+    @cache
+    def get_lisense(self, license: str | None) -> str | None:
         if license is None:
             return None
         license = self.parse_lisense(str(license))
-        for ts in event.timestandardrefs:
-            if ts.marker == license or license == 'IIIюн':
-                return ts.marker
+        if license in self.data['lisenses']:
+            return license
         self.logger.error('Not found license ' + license)
-        return None
 
+    @cache
     def parse_entrytime(self, entrytime) -> str:
         if isinstance(entrytime, (dtime, datetime)):
             r = entrytime.strftime('00:%H:%M.%S')
@@ -101,17 +130,21 @@ class RegisteredDistance:
             return "00:00:00.00"
         return f"00:{m.group(1)}:{m.group(2)}.{m.group(3)}"
 
-    def find_swimstyle(self, gdr, srk, dist) -> Event:
+    @cache
+    def find_swimstyle(self, gdr, srk, dist, age) -> Event:
         for e in self.bapi.events:
+            amin, amax = sum_age_groups(e.agegroups)
             if (
                 e.gender == gdr
                 and e.swim_style.stroke == srk
                 and e.swim_style.distance == dist
+                and check_age(age, amin, amax)
             ):
                 return e
         self.logger.error(f'Incorrect distance {gdr} {dist} {srk}')
         raise TypeError("Incorrect distance")
 
+    @cache
     def parse_gender(self, gender: str):
         if gender == "Мужской":
             return "M"
@@ -120,28 +153,30 @@ class RegisteredDistance:
         self.logger.error(f'Incorrect gender {gender}')
         raise TypeError("Sex not found")
 
-    def parse_bd(self, bd: str):
+    @cache
+    def parse_bd(self, bd: str, age: bool):
         if not isinstance(bd, str):
             return bd
         dbl = bd.split(".")
         dbl.reverse()
-        return "-".join(dbl)
+        d = "-".join(dbl)
+        return get_age(d) if age else d
 
     def get_club(self, name: str) -> Club:
         if name.lower() not in self.clubs:
             self.clubs[name.lower()] = self.bapi.create_club(name)
         return self.clubs[name.lower()]
 
-    def get_athlete(self, club: Club, event: Event, row: tuple) -> Athlete:
+    def get_athlete(self, club: Club, row: tuple) -> Athlete:
         key = (row[self.config['lastname']]
                + " " + row[self.config['firstname']]).lower()
         if key not in self.athletes:
             athl = club.create_athlete(
                 row[self.config['lastname']],
                 row[self.config['firstname']],
-                self.parse_bd(row[self.config['birthdate']]),
+                self.parse_bd(row[self.config['birthdate']], age=False),
                 self.parse_gender(row[self.config['gender']]),
-                self.get_lisense(event, row[self.config['license']]),
+                self.get_lisense(row[self.config['license']]),
             )
             self.athletes[key] = athl
         return self.athletes[key]
@@ -153,9 +188,21 @@ if __name__ == '__main__':
     # rd = RegisteredDistance(xpath, "test3.xlsx", data)
     # rd.bapi.save("result/test.lxf")
     # print(rd)
-    
-    workbook = openpyxl.load_workbook('test.xlsx')
-    sheet = workbook.active
-    values = [r.value for r in sheet[1]]
-    d = dict(zip(values, range(len(values))))
-    print(json.dumps(d, ensure_ascii=False))
+
+    # workbook = openpyxl.load_workbook('test.xlsx')
+    # sheet = workbook.active
+    # values = [r.value for r in sheet[1]]
+    # d = dict(zip(values, range(len(values))))
+    # print(json.dumps(d, ensure_ascii=False))
+
+    agegroups = [
+        AgeGroup(None, 0, 10, 9),
+        AgeGroup(None, 0, 8, 8),
+    ]
+    agegroups2 = [
+        AgeGroup(None, 0, 13, 11),
+        AgeGroup(None, 0, 15, 14),
+        AgeGroup(None, 0, -1, 16),
+    ]
+    print(sum_age_groups(agegroups))
+    print(sum_age_groups(agegroups2))
