@@ -17,12 +17,14 @@ def get_age(s: str):
     # return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
 
 
+@cache
 def check_age(age: int, minage: int, maxage: int):
     if maxage == -1:
         return True
     return minage <= age <= maxage
 
 
+@cache
 def sum_age_groups(agegroups: List[AgeGroup]):
     amax, amin = -1, math.inf
     for group in agegroups:
