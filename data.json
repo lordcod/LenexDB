@@ -1,4 +1,8 @@
 {
+  "points": {
+    "min": 2,
+    "max": 2500
+  },
   "lisenses": [
     "мс",
     "кмс",
@@ -18,7 +22,8 @@
     "Город": "club",
     "Дисциплина": "stroke",
     "Дистанция": "distance",
-    "Заявочное время": "entrytime"
+    "Заявочное время": "entrytime",
+    "Разряд": "license"
   },
   "styles": {
     "FREE": "Вольный стиль",
@@ -64,6 +69,5 @@
     "-ой": "",
     "-в": "",
     "-": ""
-  },
-  "config_path": "C:/Users/2008d/Downloads/Telegram Desktop/basic.json"
+  }
 }

@@ -1,6 +1,7 @@
 setup.py
 lenexdb/__init__.py
 lenexdb/baseapi.py
+lenexdb/basetime.py
 lenexdb/declaration.py
 lenexdb/registered.py
 lenexdb/utils.py
@@ -8,6 +9,7 @@ lenexdb.egg-info/PKG-INFO
 lenexdb.egg-info/SOURCES.txt
 lenexdb.egg-info/dependency_links.txt
 lenexdb.egg-info/top_level.txt
+lenexdb/meta/FINA_Points_Table_Base_Times.xlsx
 lenexdb/types/__init__.py
 lenexdb/types/_base_obj.py
 lenexdb/types/athlete.py

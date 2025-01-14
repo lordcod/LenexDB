@@ -1,5 +1,5 @@
 from lenexdb.baseapi import BaseApi, Athlete, Club, Event, AgeGroup
-import json
+from lenexdb.basetime import BaseTime
 import openpyxl
 import re
 import time
@@ -8,6 +8,8 @@ from typing import List
 import logging
 import math
 from functools import cache
+
+bt = BaseTime()
 
 
 def get_age(s: str):
@@ -24,7 +26,6 @@ def check_age(age: int, minage: int, maxage: int):
     return minage <= age <= maxage
 
 
-@cache
 def sum_age_groups(agegroups: List[AgeGroup]):
     amax, amin = -1, math.inf
     for group in agegroups:
@@ -35,12 +36,21 @@ def sum_age_groups(agegroups: List[AgeGroup]):
     return amin, amax
 
 
+def get_only_time(entrytime: str):
+    hrs, mins, secs = entrytime.split(':')
+    return int(hrs)*60*60+int(mins)*60+float(secs)
+
+
 class RegisteredDistance:
     clubs: dict[str, Club] = dict()
     athletes: dict[str, Athlete] = dict()
     logger = logging.getLogger()
+    debug = True
+    delay = 0.01
 
-    def __init__(self, xpath: str, table: str, data: dict):
+    def __init__(self, xpath: str, table: str, data: dict, **kwargs):
+        self.__dict__.update(kwargs)
+
         self.bapi = BaseApi(xpath)
         self.data = data
         self.config = data['location']
@@ -79,12 +89,14 @@ class RegisteredDistance:
 
     def parse(self):
         for row_k in self.sheet.iter_rows(min_row=2):
-            time.sleep(0.05)
             row = tuple(r.value for r in row_k)
-            self.logger.debug(
-                f'Parse {row_k[0].row} row: '+' '.join(map(str, row)))
             if row[self.config['lastname']] is None:
                 break
+            if self.debug:
+                self.logger.debug(
+                    f'Parse {row_k[0].row} row: '+' '.join(map(str, row)))
+            if self.delay:
+                time.sleep(self.delay)
             club = self.get_club(row[self.config['club']])
             athlete = self.get_athlete(club, row)
             try:
@@ -99,7 +111,26 @@ class RegisteredDistance:
                     f"Missed the distance {row[self.config['distance']]} {row[self.config['stroke']]}")
                 continue
             et = self.parse_entrytime(row[self.config['entrytime']])
+            point = bt.get_point(
+                athlete.gender,
+                int(row[self.config['distance']]),
+                self.registered.get(row[self.config['stroke']]),
+                get_only_time(et)
+            )
+            et, result = self.validate_entry_time(et, point)
+            if result:
+                self.logger.warning(
+                    f"{athlete.firstname} {athlete.lastname} Wrong time! Points: {point}, Entry Time: {row[self.config['entrytime']]}")
             athlete.add_entry(event.eventid, et)
+
+    def validate_entry_time(self, entrytime: str, point: float) -> tuple[str, bool]:
+        points = self.data.get('points')
+        min, max = points['min'], points['max']
+        if point == 0:
+            return entrytime, False
+        if max > point > min:
+            return entrytime, False
+        return '00:00:00:00', True
 
     @cache
     def parse_lisense(self, license: str) -> str:
@@ -123,10 +154,12 @@ class RegisteredDistance:
 
     @cache
     def parse_entrytime(self, entrytime) -> str:
+        if entrytime is None:
+            return "00:00:00.00"
         if isinstance(entrytime, (dtime, datetime)):
             r = entrytime.strftime('00:%H:%M.%S')
             return r
-        m = re.fullmatch("(\d{1,3}):(\d{1,2}):(\d{1,2})", entrytime)
+        m = re.fullmatch("(\d{1,3}):(\d{2}):(\d{1,2})", entrytime)
         if m is None:
             self.logger.error('Incorrect entrytime ' + entrytime)
             return "00:00:00.00"
@@ -143,7 +176,7 @@ class RegisteredDistance:
                 and check_age(age, amin, amax)
             ):
                 return e
-        self.logger.error(f'Incorrect distance {gdr} {dist} {srk}')
+        self.logger.error(f'Incorrect distance {gdr} {dist} {srk} {age}')
         raise TypeError("Incorrect distance")
 
     @cache

@@ -7,78 +7,12 @@ from pathlib import Path
 from processlogger import CTkProcessLogger
 from loguru import logger
 import openpyxl
+from threading import Thread
 
 validate_types = [('Lenex file', ('.lxf', '.lef')),
                   ('XML file', '.xml')]
 json_types = [('JSON file', '.json')]
-default_data = {
-    "lisenses": [
-        "мс",
-        "кмс",
-        "I",
-        "II",
-        "III",
-        "Iюн",
-        "IIюн",
-        "IIIюн"
-    ],
-    "auto_location": {
-        "Фамилия": "lastname",
-        "Имя": "firstname",
-        "Пол": "gender",
-        "р": "license",
-        "Дата рождения": "birthdate",
-        "Город": "club",
-        "Дисциплина": "stroke",
-        "Дистанция": "distance",
-        "Заявочное время": "entrytime"
-    },
-    "styles": {
-        "FREE": "Вольный стиль",
-        "BACK": "На спине",
-        "BREAST": "Брасс",
-        "FLY": "Баттерфляй",
-        "MEDLEY": "Комплекс"
-    },
-    "reversed_styles": {
-        "Вольный стиль": "FREE",
-        "На спине": "BACK",
-        "Брасс": "BREAST",
-        "Баттерфляй": "FLY",
-        "Комплекс": "MEDLEY",
-        "Комплексное плавание": "MEDLEY"
-    },
-    "location": {
-        "lastname": 0,
-        "firstname": 1,
-        "gender": 2,
-        "license": 3,
-        "birthdate": 4,
-        "club": 5,
-        "stroke": 6,
-        "distance": 7,
-        "entrytime": 8
-    },
-    "replacement": {
-        ".": "",
-        " ": "",
-        "взрослый": "",
-        "разряд": "",
-        "взр": "",
-        "вз": "",
-        "|": "I",
-        "МС": "мс",
-        "КМС": "кмс",
-        "юношеский": "юн",
-        "1": "I",
-        "2": "II",
-        "3": "III",
-        "спортивный": "",
-        "-ой": "",
-        "-в": "",
-        "-": ""
-    }
-}
+default_data = json.load(open('data.json'))
 
 
 def get_file_name(path: str) -> str:
@@ -96,9 +30,24 @@ def on_create_logger(func):
             return
 
         result = func(self, *args, **kwargs)
-        self.after(60000, self.hide_ctk_logger)
         return result
     return wrapper
+
+
+def start_subprocess(self: 'App'):
+    try:
+        self.parser.delay = 0.02
+        self.parser.logger = logger
+        self.parser.parse()
+    except Exception:
+        err = traceback.format_exc()
+        mb.showerror(
+            'Exception', 'Check if all the cells match the columns!\n'+err)
+    else:
+        self.button_saved_file_lxf.configure(state='normal')
+        self.button_add.configure(state='normal')
+        logger.info('Файл готов к импорту!')
+        self.ctk_logger.focus()
 
 
 class App(ctk.CTk):
@@ -113,6 +62,7 @@ class App(ctk.CTk):
         self.file_lxf = None
         self.file_config = None
         self.ctk_logger = None
+        self.thread = None
 
         self.geometry("620x500")
         self.resizable(False, False)
@@ -128,9 +78,9 @@ class App(ctk.CTk):
         self.info_file_lxf = ctk.CTkLabel(self.files_view.tab('Files'),
                                           text='No chosen file')
         self.info_file_lxf.grid(row=0, column=0, padx=20)
-        self.button_file_lxf = ctk.CTkButton(self.files_view.tab('Files'),
-                                             text="Open file (LXF, LEF)",
-                                             command=self.click_open_file_lxf)
+        self.button_fiноle_lxf = ctk.CTkButton(self.files_view.tab('Files'),
+                                               text="Open file (LXF, LEF)",
+                                               command=self.click_open_file_lxf)
         self.button_file_lxf.grid(row=1, column=0, padx=20)
 
         self.info_file_xlsx = ctk.CTkLabel(self.files_view.tab('Files'),
@@ -200,7 +150,7 @@ class App(ctk.CTk):
         self.box_ent_add.grid(row=len(self.entries),
                               columnspan=2, pady=10, padx=(15, 0))
         self.box_ent_save = ctk.CTkButton(
-            self.box, width=100, text='Сохранить', state='disabled', command=self.click_save_replacement)
+            self.box, width=100, text='Сохранить', state='disabled', command=self.click_save_location)
         self.box_ent_save.grid(row=len(self.entries), column=2,
                                columnspan=2, pady=10, padx=(15, 0))
 
@@ -239,7 +189,6 @@ class App(ctk.CTk):
 
     def create_ctk_logger(self):
         if self.ctk_logger and self.ctk_logger.winfo_exists():
-            self.ctk_logger.clear()
             self.ctk_logger.focus()
             return
         self.ctk_logger = CTkProcessLogger(self)
@@ -462,11 +411,23 @@ class App(ctk.CTk):
 
         workbook = openpyxl.load_workbook(file)
         sheet = workbook.active
+        alnf = set(self.location.keys())
         for i, r in enumerate(sheet[1]):
             if r.value in self.auto_location:
-                self.location[self.auto_location[r.value]] = i
+                key = self.auto_location[r.value]
+                self.location[key] = i
+                alnf.remove(key)
         self.data['location'] = self.location
         self.update_config()
+        if alnf:
+            if len(alnf) == 1:
+                t = f"Столбец {list(alnf)[0]} не был найден во время обработки."
+            else:
+                t = f"Столбецы {', '.join(alnf)} не были найдены во время обработки."
+            mb.showinfo(
+                'Не найдено',
+                t
+            )
 
     def click_save_file_lxf(self):
         file = ctk.filedialog.asksaveasfilename(
@@ -485,42 +446,34 @@ class App(ctk.CTk):
 
     @on_create_logger
     def click_start(self):
+        if self.thread:
+            return
         data = self.data.copy()
-        try:
-            self.parser = RegisteredDistance(
-                self.file_lxf, self.file_xlsx, data)
-            self.parser.logger = logger
-            self.parser.parse()
-        except Exception:
-            err = traceback.format_exc()
-            mb.showerror(
-                'Exception', 'Check if all the cells match the columns!\n'+err)
-        else:
-            self.button_saved_file_lxf.configure(state='normal')
-            self.button_add.configure(state='normal')
-            logger.info('Файл готов к импорту!')
-            self.ctk_logger.focus()
+        self.parser = RegisteredDistance(
+            self.file_lxf, self.file_xlsx, data)
+        self.thread = Thread(target=start_subprocess, args=(self, ),
+                             name=self.file_lxf, daemon=True)
+        self.thread.start()
 
     @on_create_logger
     def click_update(self):
+        if self.thread:
+            return
         if self.parser.bapi.filename != self.file_lxf:
             self.button_add.configure(state='disabled')
             return
 
-        try:
-            self.parser = RegisteredDistance.base_init(
-                self.parser.bapi, self.file_xlsx, self.data)
-            self.parser.add_elements()
-            self.parser.parse()
-        except Exception as exc:
-            err = traceback.format_exception(exc)
-            mb.showerror(
-                'Exception', 'Check if all the cells match the columns!\n'+err)
-        else:
-            self.button_saved_file_lxf.configure(state='normal')
-            self.button_add.configure(state='normal')
-            logger.info('Файл готов к импорту!')
-            self.ctk_logger.focus()
+        self.parser = RegisteredDistance.base_init(
+            self.parser.bapi, self.file_xlsx, self.data)
+        self.parser.add_elements()
+
+        self.thread = Thread(target=start_subprocess, args=(self, ),
+                             name=self.file_lxf, daemon=True)
+        self.thread.start()
+
+    def stop_thread(self):
+        self.thread.join()
+        self.thread = None
 
 
 try:
