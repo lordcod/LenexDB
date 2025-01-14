@@ -8,8 +8,10 @@ from typing import List
 import logging
 import math
 from functools import cache
-
-bt = BaseTime()
+try:
+    bt = BaseTime()
+except FileNotFoundError:
+    bt = BaseTime.null()
 
 
 def get_age(s: str):
@@ -47,6 +49,7 @@ class RegisteredDistance:
     logger = logging.getLogger()
     debug = True
     delay = 0.01
+    basetime = bt
 
     def __init__(self, xpath: str, table: str, data: dict, **kwargs):
         self.__dict__.update(kwargs)
@@ -111,16 +114,17 @@ class RegisteredDistance:
                     f"Missed the distance {row[self.config['distance']]} {row[self.config['stroke']]}")
                 continue
             et = self.parse_entrytime(row[self.config['entrytime']])
-            point = bt.get_point(
-                athlete.gender,
-                int(row[self.config['distance']]),
-                self.registered.get(row[self.config['stroke']]),
-                get_only_time(et)
-            )
-            et, result = self.validate_entry_time(et, point)
-            if result:
-                self.logger.warning(
-                    f"{athlete.firstname} {athlete.lastname} Wrong time! Points: {point}, Entry Time: {row[self.config['entrytime']]}")
+            if self.data['points']['switch']:
+                point = self.basetime.get_point(
+                    athlete.gender,
+                    int(row[self.config['distance']]),
+                    self.registered.get(row[self.config['stroke']]),
+                    get_only_time(et)
+                )
+                et, result = self.validate_entry_time(et, point)
+                if result:
+                    self.logger.warning(
+                        f"{athlete.firstname} {athlete.lastname} Wrong time! Points: {point:.5f}, Entry Time: {row[self.config['entrytime']]}")
             athlete.add_entry(event.eventid, et)
 
     def validate_entry_time(self, entrytime: str, point: float) -> tuple[str, bool]:

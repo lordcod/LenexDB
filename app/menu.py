@@ -1,6 +1,7 @@
 import json
 import traceback
 import customtkinter as ctk
+from lenexdb.basetime import BaseTime
 from lenexdb.registered import RegisteredDistance
 from tkinter import messagebox as mb
 from pathlib import Path
@@ -8,11 +9,18 @@ from processlogger import CTkProcessLogger
 from loguru import logger
 import openpyxl
 from threading import Thread
+import contextlib
+import sys
+import os
+with contextlib.suppress(Exception):
+    os.chdir(sys._MEIPASS)
+    print(__name__)
 
 validate_types = [('Lenex file', ('.lxf', '.lef')),
                   ('XML file', '.xml')]
 json_types = [('JSON file', '.json')]
-default_data = json.load(open('data.json'))
+default_data = json.loads(open('./data.json', 'rb').read())
+bt = BaseTime('./FINA_Points_Table_Base_Times.xlsx')
 
 
 def get_file_name(path: str) -> str:
@@ -71,16 +79,16 @@ class App(ctk.CTk):
             self, width=580, height=120)
         self.files_view.grid(row=0, column=0, padx=20,
                              pady=(0, 0), sticky="nsew")
-        for n in ['Process', 'Files', 'Config']:
+        for n in ['Process', 'Files', 'Config', 'Points']:
             self.files_view.add(n)
             self.files_view.tab(n).grid_columnconfigure(0, weight=0)
 
         self.info_file_lxf = ctk.CTkLabel(self.files_view.tab('Files'),
                                           text='No chosen file')
         self.info_file_lxf.grid(row=0, column=0, padx=20)
-        self.button_fiноle_lxf = ctk.CTkButton(self.files_view.tab('Files'),
-                                               text="Open file (LXF, LEF)",
-                                               command=self.click_open_file_lxf)
+        self.button_file_lxf = ctk.CTkButton(self.files_view.tab('Files'),
+                                             text="Open file (LXF, LEF)",
+                                             command=self.click_open_file_lxf)
         self.button_file_lxf.grid(row=1, column=0, padx=20)
 
         self.info_file_xlsx = ctk.CTkLabel(self.files_view.tab('Files'),
@@ -127,6 +135,35 @@ class App(ctk.CTk):
                                         state='disabled',
                                         width=210)
         self.button_add.grid(row=0, column=1, padx=30, pady=(10, 10))
+
+        self.switch_point = ctk.CTkSwitch(self.files_view.tab(
+            'Points'), text=None, command=self.update_switch_point)
+        self.switch_point.grid(row=0, column=1, padx=20)
+        self.switch_point_info = ctk.CTkLabel(self.files_view.tab('Points'),
+                                              text="Turn on the limiter")
+        self.switch_point_info.grid(row=1, column=1, padx=20)
+        self.switch_point.select(
+        ) if self.data['points']['switch'] else self.switch_point.deselect()
+
+        self.min_point_info = ctk.CTkLabel(self.files_view.tab('Points'),
+                                           text="Min point")
+        self.min_point_info.grid(row=0, column=0, padx=20)
+        self.min_point_entry = ctk.CTkEntry(self.files_view.tab('Points'))
+        self.min_point_entry.grid(row=1, column=0, padx=20)
+        self.min_point_entry.insert(1, data['points']['min'])
+        self.min_point_entry.bind("<KeyRelease>", self.update_min_point)
+        self.min_point_entry.configure(validate='all', validatecommand=(
+            self.register(self.validate_points), '%P'))
+
+        self.max_point_info = ctk.CTkLabel(self.files_view.tab('Points'),
+                                           text="Max point")
+        self.max_point_info.grid(row=0, column=2, padx=20)
+        self.max_point_entry = ctk.CTkEntry(self.files_view.tab('Points'))
+        self.max_point_entry.grid(row=1, column=2, padx=20)
+        self.max_point_entry.insert(0, data['points']['max'])
+        self.max_point_entry.bind("<KeyRelease>", self.update_max_point)
+        self.max_point_entry.configure(validate='all', validatecommand=(
+            self.register(self.validate_points), '%P'))
 
         self.tabs_frame = ctk.CTkFrame(
             self, width=540, height=550)
@@ -187,12 +224,44 @@ class App(ctk.CTk):
             entry.bind("<KeyRelease>", self.update_text_config)
             self.labels_replacement[n] = entry
 
+    def _get_value_entry_point(self, value: str) -> float | int:
+        if not value:
+            return 0
+        if value.endswith((',', '.')):
+            value = value[:-1]
+        with contextlib.suppress(ValueError):
+            return int(value)
+        with contextlib.suppress(ValueError):
+            return float(value)
+        return 0
+
+    def update_min_point(self, *args):
+        self.data['points']['min'] = self._get_value_entry_point(
+            self.min_point_entry.get())
+
+    def update_max_point(self, *args):
+        self.data['points']['max'] = self._get_value_entry_point(
+            self.max_point_entry.get())
+
+    def update_switch_point(self):
+        self.data['points']['switch'] = bool(self.switch_point.get())
+
+    def validate_points(self, text: str):
+        if not text or text.endswith((',', '.')):
+            return True
+        with contextlib.suppress(ValueError):
+            int(text)
+            return True
+        with contextlib.suppress(ValueError):
+            float(text)
+            return True
+        return False
+
     def create_ctk_logger(self):
         if self.ctk_logger and self.ctk_logger.winfo_exists():
             self.ctk_logger.focus()
             return
         self.ctk_logger = CTkProcessLogger(self)
-        self.ctk_logger.clear()
 
     def hide_ctk_logger(self):
         if not self.ctk_logger:
@@ -450,7 +519,7 @@ class App(ctk.CTk):
             return
         data = self.data.copy()
         self.parser = RegisteredDistance(
-            self.file_lxf, self.file_xlsx, data)
+            self.file_lxf, self.file_xlsx, data, basetime=bt)
         self.thread = Thread(target=start_subprocess, args=(self, ),
                              name=self.file_lxf, daemon=True)
         self.thread.start()
@@ -465,6 +534,7 @@ class App(ctk.CTk):
 
         self.parser = RegisteredDistance.base_init(
             self.parser.bapi, self.file_xlsx, self.data)
+        self.parser.basetime = bt
         self.parser.add_elements()
 
         self.thread = Thread(target=start_subprocess, args=(self, ),

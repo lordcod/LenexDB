@@ -1,9 +1,4 @@
-import os
 from setuptools import setup, find_packages
-
-
-def create_list_dir(dir: str):
-    return [os.path.join(dir, fn) for fn in os.listdir('lenexdb/meta')]
 
 
 setup(
@@ -16,5 +11,5 @@ setup(
     # ],
     packages=find_packages(),
     package_dir={'spherical_functions': '.'},
-    data_files=[('lenexdb/meta', create_list_dir('lenexdb/meta'))]
+    data_files=[('lenexdb', ['FINA_Points_Table_Base_Times.xlsx'])]
 )

@@ -1,18 +1,25 @@
 import openpyxl
-import math
+import sys
 from pathlib import Path
 
-META_TABLE = Path(__file__).parent / 'meta' / \
+
+META_TABLE = Path(sys.prefix) / 'lenexdb' / \
     'FINA_Points_Table_Base_Times.xlsx'
 
 
 class BaseTime:
     def __init__(self, table: str = META_TABLE):
         self.table = table
-        self.max_age = math.inf
         self.global_data = {}
         self.data = {}
         self._parse()
+
+    @classmethod
+    def null(cls):
+        self = cls.__new__(cls)
+        self.global_data = {}
+        self.data = {}
+        return self
 
     def _parse(self):
         workbook = openpyxl.load_workbook(self.table)
