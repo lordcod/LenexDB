@@ -116,6 +116,7 @@ class RegisteredDistance:
             et = self.parse_entrytime(row[self.config['entrytime']])
             if self.data['points']['switch']:
                 point = self.basetime.get_point(
+                    self.bapi.course,
                     athlete.gender,
                     int(row[self.config['distance']]),
                     self.registered.get(row[self.config['stroke']]),

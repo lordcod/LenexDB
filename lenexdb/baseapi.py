@@ -69,6 +69,7 @@ class BaseApi:
 
     def parse(self):
         self.meet = self.root.find("MEETS").find("MEET")
+        self.course = self.meet.get('course')
 
         self.element_clubs = self.meet.find("CLUBS")
         if self.element_clubs is None:
@@ -156,16 +157,24 @@ class BaseApi:
                     standart_list.append(tmr)
 
                 pag = eevent.find('AGEGROUPS')
-                agegroups_es = pag.findall('AGEGROUP')
                 agegroups = []
-                for ag in agegroups_es:
-                    agegroup = AgeGroup(
-                        ag,
-                        int(ag.get('agegroupid')),
-                        int(ag.get('agemax')),
-                        int(ag.get('agemin'))
-                    )
-                    agegroups.append(agegroup)
+                if pag is not None:
+                    agegroups_es = pag.findall('AGEGROUP')
+                    for ag in agegroups_es:
+                        agegroup = AgeGroup(
+                            ag,
+                            int(ag.get('agegroupid')),
+                            int(ag.get('agemax')),
+                            int(ag.get('agemin'))
+                        )
+                        agegroups.append(agegroup)
+                else:
+                    agegroups.append(AgeGroup(
+                        None,
+                        0,
+                        -1,
+                        -1
+                    ))
 
                 event = Event(
                     self,

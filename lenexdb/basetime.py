@@ -30,12 +30,14 @@ class BaseTime:
             if values[3] != 1:
                 continue
             data.setdefault(values[0], {})
-            data[values[0]][(values[2], values[4], values[5])] = values[8]
+            data[values[0]][(values[1], values[2], values[4],
+                             values[5])] = values[8]
         self.data = data[values[0]].copy()
         self.global_data = data
 
     def get_point(
         self,
+        course: str,
         gender: str,
         distance: int,
         stroke: str,
@@ -43,11 +45,11 @@ class BaseTime:
     ) -> int:
         if result <= 0:
             return 0
-        B = self.data[(gender, distance, stroke)]
+        B = self.data[(course, gender, distance, stroke)]
         return 1000 * (B / result) ** 3
 
 
 if __name__ == '__main__':
     # table = 'FINA_Points_Table_Base_Times.xlsx'
     bt = BaseTime()
-    print(bt.get_point('M', 800, 'FREE', 567.65))
+    print(bt.get_point('LCM', 'M', 800, 'FREE', 567.65))

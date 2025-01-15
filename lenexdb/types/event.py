@@ -12,7 +12,7 @@ class Event:
     baseapi: BaseApi
     element: Element
     eventid: int
-    gender: Literal["M", "F"]
+    gender: Literal["M", "F", "X"]
     number: int
     order: int
     round: str

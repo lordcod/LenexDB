@@ -26,7 +26,7 @@ bt = BaseTime('./FINA_Points_Table_Base_Times.xlsx')
 def get_file_name(path: str) -> str:
     if path is None:
         return None
-    return Path(path).name
+    return Path(path).name[:21]
 
 
 def on_create_logger(func):
@@ -56,6 +56,8 @@ def start_subprocess(self: 'App'):
         self.button_add.configure(state='normal')
         logger.info('Файл готов к импорту!')
         self.ctk_logger.focus()
+    finally:
+        self.thread = None
 
 
 class App(ctk.CTk):
@@ -261,7 +263,7 @@ class App(ctk.CTk):
         if self.ctk_logger and self.ctk_logger.winfo_exists():
             self.ctk_logger.focus()
             return
-        self.ctk_logger = CTkProcessLogger(self)
+        self.ctk_logger = CTkProcessLogger(logger)
 
     def hide_ctk_logger(self):
         if not self.ctk_logger:
@@ -439,11 +441,10 @@ class App(ctk.CTk):
 
     def click_export_config(self):
         file = ctk.filedialog.asksaveasfilename(
-            filetypes=json_types)
+            filetypes=json_types,
+            defaultextension='*.json')
         if not file:
             return
-        if '.' not in file:
-            file += '.json'
 
         data = {
             **self.data,
@@ -500,11 +501,10 @@ class App(ctk.CTk):
 
     def click_save_file_lxf(self):
         file = ctk.filedialog.asksaveasfilename(
-            filetypes=validate_types)
+            filetypes=validate_types,
+            defaultextension='*.lxf')
         if not file:
             return
-        if '.' not in file:
-            file += '.lxf'
 
         self.parser.bapi.save(file)
         self.button_saved_file_lxf.configure(state='disabled')
@@ -540,10 +540,6 @@ class App(ctk.CTk):
         self.thread = Thread(target=start_subprocess, args=(self, ),
                              name=self.file_lxf, daemon=True)
         self.thread.start()
-
-    def stop_thread(self):
-        self.thread.join()
-        self.thread = None
 
 
 try:

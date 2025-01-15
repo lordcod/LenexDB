@@ -3,20 +3,15 @@ from ctkloguru import LoguruWidget, setup_logger
 
 
 class CTkProcessLogger(ctk.CTkToplevel):
-    def __init__(self, *args, fg_color=None, **kwargs):
+    def __init__(self, logger, *args, fg_color=None, **kwargs):
         super().__init__(*args, fg_color=fg_color, **kwargs)
         self.title("The parsing process")
         self.geometry("600x400")
 
         self.log_widget = LoguruWidget(
-            self, show_scrollbar=False, color_mode='level', max_lines=1000)
+            self, show_scrollbar=False, color_mode='level', max_lines=1000, intercept_logging=True)
         self.log_widget.pack(expand=True, fill=ctk.BOTH, padx=10, pady=10)
         setup_logger(self.log_widget)
-
-    def clear(self):
-        q = self.log_widget.queue
-        with q.mutex:
-            q.queue.clear()
 
 
 if __name__ == '__main__':
