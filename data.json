@@ -1,6 +1,6 @@
 {
   "points": {
-    "switch": true,
+    "switch": false,
     "min": 1.0,
     "max": 1500.0
   },
@@ -44,13 +44,13 @@
   "location": {
     "lastname": 0,
     "firstname": 1,
-    "gender": 4,
-    "license": 8,
-    "birthdate": 3,
-    "club": 7,
-    "stroke": 9,
-    "distance": 10,
-    "entrytime": 12
+    "gender": 3,
+    "license": 4,
+    "birthdate": 5,
+    "club": 10,
+    "stroke": 11,
+    "distance": 12,
+    "entrytime": 14
   },
   "replacement": {
     ".": "",
@@ -70,5 +70,17 @@
     "-ой": "",
     "-в": "",
     "-": ""
+  },
+  "auto-location": {
+    "Фамилия": "lastname",
+    "Имя": "firstname",
+    "Пол": "gender",
+    "р": "license",
+    "Дата рождения": "birthdate",
+    "Город": "club",
+    "Дисциплина": "stroke",
+    "Дистанция": "distance",
+    "Заявочное время": "entrytime",
+    "Разряд": "license"
   }
 }

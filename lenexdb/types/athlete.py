@@ -20,7 +20,8 @@ class Athlete(BaseObj):
     club: Club
     lastname: str = field(metadata={"ext": selfname})
     firstname: str = field(metadata={"ext": selfname})
-    birthdate: datetime | str  = field(metadata={"ext": selfname, "parse": lambda _, v: parse_bd(v)})
+    birthdate: datetime | str = field(
+        metadata={"ext": selfname, "parse": lambda _, v: parse_bd(v)})
     gender: Literal["M", "F"] = field(metadata={"ext": selfname})
     athleteid: int
     license: Optional[str] = field(default=None, metadata={"ext": selfname})
@@ -28,8 +29,10 @@ class Athlete(BaseObj):
 
     def add_entry(self, eventid: int, entrytime: str):
         from .entry import Entry
-
-        entry = Element("ENTRY", {"eventid": str(eventid), "entrytime": entrytime})
+        if entrytime == '00:00:00:00':
+            print(self, eventid, entrytime)
+        entry = Element("ENTRY", {"eventid": str(
+            eventid), "entrytime": entrytime})
         self.element.find("ENTRIES").append(entry)
         self.enries.append(Entry(self.baseapi, entry, eventid, entrytime))
 

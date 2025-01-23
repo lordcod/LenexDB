@@ -15,8 +15,8 @@ course;gender;agemin;agemax;distance;stroke;mintime;relaycount
 """
 
 courses = {
-    '25 м': 'LCM',
-    '50 м': 'SCM'
+    '25 м': 'SCM',
+    '50 м': 'LCM'
 }
 strokes = {
     "вольный стиль": "FREE",
@@ -45,6 +45,8 @@ def parse_data(data: list):
     course = courses[course]
     gender, (agemin, agemax) = ga[0], ga[1:].split('-')
     distance, stroke, relaycount = parse_distance(distance)
+    if ':' not in time:
+        time = '0:'+time
     result = ';'.join(
         map(str, [course, gender, agemin, agemax, distance, stroke, time, relaycount]))
     return result

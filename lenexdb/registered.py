@@ -1,10 +1,12 @@
+from dataclasses import dataclass
+from xml.dom import ValidationErr
 from lenexdb.baseapi import BaseApi, Athlete, Club, Event, AgeGroup
 from lenexdb.basetime import BaseTime
 import openpyxl
 import re
 import time
-from datetime import time as dtime, datetime, date
-from typing import List
+from datetime import time as dtime, datetime, date, timedelta
+from typing import Any, Iterable, List, Type, Union
 import logging
 import math
 from functools import cache
@@ -12,6 +14,38 @@ try:
     bt = BaseTime()
 except FileNotFoundError:
     bt = BaseTime.null()
+
+default_time = datetime(1900, 1, 1)
+
+
+class RegisteredError(Exception):
+    pass
+
+
+class IncorrectError(RegisteredError, ValueError):
+    pass
+
+
+class IncorrectDistance(IncorrectError):
+    pass
+
+
+class IncorrectGender(IncorrectError):
+    pass
+
+
+class IncorrectAge(IncorrectError):
+    pass
+
+
+@dataclass
+class RowValidate:
+    name: str
+    types: Type | List[Type]
+
+
+class Rows:
+    club = RowValidate('club', str)
 
 
 def get_age(s: str):
@@ -62,6 +96,17 @@ class RegisteredDistance:
         workbook = openpyxl.load_workbook(table)
         self.sheet = workbook.active
 
+    def rc(self, id: RowValidate) -> Any:
+        t = self.config[id.name]
+        names = t if isinstance(t, list) else [t]
+        for n in names:
+            data = self.row[n]
+            if data is None:
+                continue
+            if not isinstance(data, id.types):
+                continue
+            return data
+
     @classmethod
     def init(cls) -> 'RegisteredDistance':
         return cls.__new__(cls)
@@ -92,7 +137,7 @@ class RegisteredDistance:
 
     def parse(self):
         for row_k in self.sheet.iter_rows(min_row=2):
-            row = tuple(r.value for r in row_k)
+            row = self.row = tuple(r.value for r in row_k)
             if row[self.config['lastname']] is None:
                 break
             if self.debug:
@@ -100,16 +145,17 @@ class RegisteredDistance:
                     f'Parse {row_k[0].row} row: '+' '.join(map(str, row)))
             if self.delay:
                 time.sleep(self.delay)
-            club = self.get_club(row[self.config['club']])
+            club = self.get_club(self.rc(Rows.club))
             athlete = self.get_athlete(club, row)
+            strk = self.registered[row[self.config['stroke']].strip()]
             try:
                 event = self.find_swimstyle(
                     athlete.gender,
-                    self.registered.get(row[self.config['stroke']]),
+                    strk,
                     int(row[self.config['distance']]),
                     self.parse_bd(row[self.config['birthdate']], age=True)
                 )
-            except TypeError:
+            except IncorrectDistance:
                 self.logger.error(
                     f"Missed the distance {row[self.config['distance']]} {row[self.config['stroke']]}")
                 continue
@@ -119,7 +165,7 @@ class RegisteredDistance:
                     self.bapi.course,
                     athlete.gender,
                     int(row[self.config['distance']]),
-                    self.registered.get(row[self.config['stroke']]),
+                    strk,
                     get_only_time(et)
                 )
                 et, result = self.validate_entry_time(et, point)
@@ -166,7 +212,7 @@ class RegisteredDistance:
             return r
         m = re.fullmatch("(\d{1,3}):(\d{2}):(\d{1,2})", entrytime)
         if m is None:
-            self.logger.error('Incorrect entrytime ' + entrytime)
+            self.logger.warning('Incorrect entrytime ' + entrytime)
             return "00:00:00.00"
         return f"00:{m.group(1)}:{m.group(2)}.{m.group(3)}"
 
@@ -182,21 +228,26 @@ class RegisteredDistance:
             ):
                 return e
         self.logger.error(f'Incorrect distance {gdr} {dist} {srk} {age}')
-        raise TypeError("Incorrect distance")
+        raise IncorrectDistance()
 
     @cache
     def parse_gender(self, gender: str):
-        if gender == "Мужской":
+        if gender.lower() == "мужской":
             return "M"
-        if gender == "Женский":
+        if gender.lower() == "женский":
             return "F"
         self.logger.error(f'Incorrect gender {gender}')
-        raise TypeError("Sex not found")
+        raise IncorrectGender(gender)
 
     @cache
-    def parse_bd(self, bd: str, age: bool):
+    def parse_bd(self, bd: str | datetime | int, age: bool):
+        if isinstance(bd, int):
+            bd = default_time+timedelta(days=bd-2)
+        if isinstance(bd, datetime):
+            bd = bd.strftime('%Y-%m-%d')
         if not isinstance(bd, str):
-            return bd
+            raise IncorrectAge()
+        d = bd
         dbl = bd.split(".")
         dbl.reverse()
         d = "-".join(dbl)

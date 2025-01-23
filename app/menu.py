@@ -304,15 +304,23 @@ class App(ctk.CTk):
                                 columnspan=2, pady=10, padx=(15, 0))
         self.box_loct_save.configure(state='disabled')
 
-    def validate_location_config(self, text):
-        return not text or (text.isdigit() and int(text) < 100)
+    def validate_location_config(self, texts):
+        texts = texts.split(',')
+        return all(not text or (text.isdigit() and int(text) < 100) for text in texts)
 
     def update_text_config(self, *args):
         for n, entry in self.labels_replacement.items():
             s = entry.get()
             if not s:
                 continue
-            self.location[n] = int(s)
+            if ',' in s:
+                nums = list(
+                    map(lambda i: int(i)-1 if i else None, s.split(',')))
+                while None in nums:
+                    nums.remove(None)
+                self.location[n] = nums
+            else:
+                self.location[n] = int(s)-1
         self.data['location'] = self.location
 
     def _create_entry_location(self, box, i, a, b):
@@ -518,6 +526,7 @@ class App(ctk.CTk):
         if self.thread:
             return
         data = self.data.copy()
+        print(data)
         self.parser = RegisteredDistance(
             self.file_lxf, self.file_xlsx, data, basetime=bt)
         self.thread = Thread(target=start_subprocess, args=(self, ),

@@ -45,7 +45,10 @@ class BaseTime:
     ) -> int:
         if result <= 0:
             return 0
-        B = self.data[(course, gender, distance, stroke)]
+        try:
+            B = self.data[(course, gender, distance, stroke)]
+        except KeyError:
+            B = 500
         return 1000 * (B / result) ** 3
 
 
